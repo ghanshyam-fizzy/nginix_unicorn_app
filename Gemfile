@@ -45,3 +45,14 @@ group :development, :test do
   gem 'spring'
 end
 
+
+
+gem 'capistrano', "~>2.15.5", group: :development, require: false
+#gem 'capistrano-sidekiq', group: :development
+gem 'rvm-capistrano'
+
+
+group :production do
+  gem 'unicorn'
+  gem 'unicorn-worker-killer'
+end
