@@ -48,7 +48,7 @@ end
 
 
 gem 'capistrano', "~>2.15.5", group: :development, require: false
-#gem 'capistrano-sidekiq', group: :development
+gem 'capistrano-sidekiq', group: :development
 gem 'rvm-capistrano'
 
 
