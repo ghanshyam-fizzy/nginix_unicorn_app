@@ -1,4 +1,53 @@
-upstream unicorn {
+worker_processes 4;
+
+pid /var/run/nginx.pid;
+error_log /var/log/nginx/nginx.error.log;
+
+events {
+  worker_connections 1024; # increase if you have lots of clients
+  accept_mutex off; # "on" if nginx worker_processes > 1
+
+}
+
+http {
+  server_names_hash_bucket_size 64;
+
+  # nginx will find this file in the config directory set at nginx build time
+  include mime.types;
+
+  # fallback in case we can't determine a type
+  default_type application/octet-stream;
+
+  # click tracking!
+  access_log /var/log/nginx/access.log;
+
+  # you generally want to serve static files with nginx since neither
+  # Unicorn nor Rainbows! is optimized for it at the moment
+  sendfile on;
+
+  tcp_nopush on; # off may be better for *some* Comet/long-poll stuff
+  tcp_nodelay on; # on may be better for some Comet/long-poll stuff
+
+  # we haven't checked to see if Rack::Deflate on the app server is
+  # faster or not than doing compression via nginx.  It's easier
+  # to configure it all in one place here for static files and also
+  # to disable gzip for clients who don't get gzip/deflate right.
+  # There are other gzip settings that may be needed used to deal with
+  # bad clients out there, see http://wiki.nginx.org/NginxHttpGzipModule
+  gzip on;
+  gzip_http_version 1.1;
+  gzip_proxied any;
+  gzip_min_length 500;
+  gzip_disable "MSIE [1-6]\.";
+  gzip_types text/plain text/xml text/css
+             text/comma-separated-values
+             text/javascript application/x-javascript
+             application/atom+xml;
+
+  types_hash_max_size 2048;
+
+  # this can be any application server, not just Unicorn/Rainbows!
+  upstream unicorn {
     # fail_timeout=0 means we always retry an upstream even if it failed
     # to return a good HTTP response (in case the Unicorn master nukes a
     # single worker for timing out).
@@ -11,7 +60,7 @@ upstream unicorn {
     # server 192.168.0.7:8080 fail_timeout=0;
     # server 192.168.0.8:8080 fail_timeout=0;
     # server 192.168.0.9:8080 fail_timeout=0;
- }
+  }
 
   upstream nginix_unicorn_app {
     server unix:/tmp/unicorn.nginix_unicorn_app.sock fail_timeout=0;
@@ -42,7 +91,7 @@ upstream unicorn {
     keepalive_timeout 10;
 
     # path for static files
-    root /home/root/nginix_unicorn_app/production/current/public;
+    root /home/deploy/nginix_unicorn_app/production/current/public;
 
 
     # Prefer to serve static files directly from nginx to avoid unnecessary
@@ -68,7 +117,7 @@ upstream unicorn {
 
       # enable this if you forward HTTPS traffic to unicorn,
       # this helps Rack set the proper URL scheme for doing redirects:
-       proxy_set_header X-Forwarded-Proto $scheme;
+      # proxy_set_header X-Forwarded-Proto $scheme;
 
       # pass the Host: header from the client right along so redirects
       # can be set properly within the Rack application
@@ -96,45 +145,9 @@ upstream unicorn {
     # Rails error pages
     error_page 500 502 503 504 /500.html;
     location = /500.html {
-      root  /home/deploy/nginix_unicorn_app/production/current/public;
+      root /home/deploy/nginix_unicorn_app/production/current/public;
     }
   }
 
-#upstream unicorn {
-#  server unix:/tmp/unicorn.nginix_unicorn_app.sock fail_timeout=0;
-#}
 
-#server {
-#  server_name www.nginix_unicorn_app.com;
-#  return 301 $scheme://nginix_unicorn_app.com$request_uri;
-#}
-
-#server {
- # listen 80 ;
- # server_name nginix_unicorn_app.com;
- # root /home/deploy/nginix_unicorn_app/production/current/public;
-
- # location ~* \.(js|css|png|jpg|jpeg|gif|ico)$ {
- # root /home/deploy/nginix_unicorn_app/production/current/public;
- # expires max;
- # add_header Cache-Control public;
- # log_not_found off;
- # }
-
- #location ^~ /assets/ {
-  #  gzip_static on;
-   # expires max;
-   # add_header Cache-Control public;
-  #}
-
-  #try_files $uri/index.html $uri @unicorn;
-  #location @unicorn {
-  # proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-  #proxy_set_header Host $http_host;
-  #  proxy_redirect off;
-  #  proxy_pass http://unicorn;
-  #}
-
-  #error_page 500 502 503 504 /500.html;
-  #keepalive_timeout 10;
-  #}
+}
