@@ -27,7 +27,7 @@ stderr_path "#{root}/log/unicorn.log"
 stdout_path "#{root}/log/unicorn.log"
 
 # listen 80
-listen "/tmp/unicorn.appname.sock"
+listen "/tmp/unicorn.nginix_unicorn_app.sock"
 worker_processes 2
 timeout 30
 
